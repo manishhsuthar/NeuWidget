@@ -7,10 +7,13 @@ const wdg = new Widget({
   },
 });
 
-wdg.onReady(() => {
+wdg.onReady(async () => {
   wdg.poll(updateClock, 1000);
   wdg.onQuit(asyncClean);
   wdg.onQuit(syncClean);
+
+  const k = await wdg.store.get("someKey");
+  if (k) await Neutralino.debug.log(`key: ${k}`, "INFO");
 });
 
 async function asyncClean() {
@@ -20,6 +23,7 @@ async function asyncClean() {
 }
 
 async function syncClean() {
+  await wdg.store.set("someKey", "someValue");
   Neutralino.debug.log("fast cleanup, no delay.");
 }
 

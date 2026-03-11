@@ -252,6 +252,58 @@ class Widget {
     });
   }
 
+  get store() {
+    if (!this._store) {
+      this._store = {
+        async get(key) {
+          try {
+            const data = await Neutralino.storage.getData(String(key));
+            return data ? JSON.parse(data) : null;
+          } catch (error) {
+            Neutralino.debug.log(
+              `Error getting key: ${key} - ${error}`,
+              "ERROR"
+            );
+            return null;
+          }
+        },
+        async set(key, value) {
+          try {
+            await Neutralino.storage.setData(
+              String(key),
+              JSON.stringify(value)
+            );
+          } catch (error) {
+            Neutralino.debug.log(
+              `Error setting key: ${key} - ${error}`,
+              "ERROR"
+            );
+          }
+          return this;
+        },
+        async remove(key) {
+          try {
+            await Neutralino.storage.remove(String(key));
+          } catch (error) {
+            Neutralino.debug.log(
+              `Error removing key: ${key} - ${error}`,
+              "ERROR"
+            );
+          }
+        },
+
+        async getKeys() {
+          return await Neutralino.storage.getKeys();
+        },
+
+        async clear() {
+          await Neutralino.storage.clear();
+        },
+      };
+    }
+    return this._store;
+  }
+
   // Helpers
 
   /**

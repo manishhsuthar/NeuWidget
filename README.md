@@ -10,8 +10,9 @@ A tiny scaffolding layer for building desktop widgets with [NeutralinoJS](https:
 
 - Draggable - click and hold anywhere to move the widget
 - Resizable - optional corner handles to grow or shrink the window
-- Pluggable - extend with your own plugins via wdg.use(plugin)
+- K/V Store - Wraps Neutralino Storage API to provide key/value persistence
 - Shortcuts - implement keyboard shortcuts.
+- Pluggable - extend with your own plugins via wdg.use(plugin)
 
 ## Usage
 

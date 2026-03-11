@@ -17,8 +17,13 @@ class Widget {
       shortcuts: options.shortcuts ?? {},
     };
 
-    this._readyCallbacks = [];
     this._plugins = [];
+    this._readyCallbacks = [];
+    this._quitCallbacks = [];
+
+    // overriding the actual quit method with _quit so that before quitting we call onQuit
+    this._ogQuit = this.quit.bind(this);
+    this.quit = this._quit.bind(this);
 
     Neutralino.init();
     Neutralino.events.on("ready", () => this._boot());
@@ -26,11 +31,6 @@ class Widget {
   }
 
   // Lifecycle
-
-  onReady(fn) {
-    this._readyCallbacks.push(fn);
-    return this;
-  }
 
   async _boot() {
     if (this.opts.alwaysOnTop) await Neutralino.window.setAlwaysOnTop(true);
@@ -45,6 +45,40 @@ class Widget {
 
     for (const plugin of this._plugins) await plugin.init?.(this);
     for (const fn of this._readyCallbacks) await fn(this);
+  }
+
+  async show() {
+    await Neutralino.window.show();
+  }
+  async hide() {
+    await Neutralino.window.hide();
+  }
+  async minimize() {
+    await Neutralino.window.minimize();
+  }
+  quit() {
+    Neutralino.app.exit();
+  }
+
+  onReady(fn) {
+    this._readyCallbacks.push(fn);
+    return this;
+  }
+
+  onQuit(fn) {
+    this._quitCallbacks.push(fn);
+    return this;
+  }
+
+  async _quit() {
+    for (const fn of [...this._quitCallbacks].reverse()) {
+      try {
+        await Promise.resolve(fn(this));
+      } catch (e) {
+        console.log("error: ", e);
+      }
+    }
+    this._ogQuit();
   }
 
   // Window
@@ -72,19 +106,6 @@ class Widget {
       });
       return;
     }
-  }
-
-  async show() {
-    await Neutralino.window.show();
-  }
-  async hide() {
-    await Neutralino.window.hide();
-  }
-  async minimize() {
-    await Neutralino.window.minimize();
-  }
-  quit() {
-    Neutralino.app.exit();
   }
 
   // Drag

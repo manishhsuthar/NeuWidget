@@ -9,7 +9,19 @@ const wdg = new Widget({
 
 wdg.onReady(() => {
   wdg.poll(updateClock, 1000);
+  wdg.onQuit(asyncClean);
+  wdg.onQuit(syncClean);
 });
+
+async function asyncClean() {
+  Neutralino.debug.log("Starting 3s delay...");
+  await new Promise((r) => setTimeout(r, 3000));
+  Neutralino.debug.log("defered cleanup", "INFO");
+}
+
+async function syncClean() {
+  Neutralino.debug.log("fast cleanup, no delay.");
+}
 
 function updateClock() {
   const now = new Date();

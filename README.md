@@ -8,10 +8,10 @@ A tiny scaffolding layer for building desktop widgets with [NeutralinoJS](https:
 
 ## Features
 
-- Draggable — click and hold anywhere to move the widget
-- Resizable — optional corner handles to grow or shrink the window
-- Pluggable — extend with your own plugins via wdg.use(plugin)
-- Shortcuts — implement keyboard shortcuts.
+- Draggable - click and hold anywhere to move the widget
+- Resizable - optional corner handles to grow or shrink the window
+- Pluggable - extend with your own plugins via wdg.use(plugin)
+- Shortcuts - implement keyboard shortcuts.
 
 ## Usage
 
@@ -21,7 +21,7 @@ Step 1: Install neutralino.js globally:
 npm install -g @neutralinojs/neu
 ```
 
-Step 2: Generate the build folders:
+Step 2: cd to the project and generate the build folders:
 
 ```bash
 neu build && neu update

@@ -54,4 +54,10 @@ wdg.onReady(() => {
 
 ---
 
+### Preview:
+
+<img width="1920" height="1080" alt="preview" src="https://github.com/user-attachments/assets/823049f9-e188-47ab-a35b-8f61531d2a77" />
+
+---
+
 **Note: The widget only appears as long as the program runs. A "run in background" feature is yet to be implemented.**

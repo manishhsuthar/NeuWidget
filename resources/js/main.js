@@ -17,13 +17,14 @@ wdg.onReady(async () => {
 });
 
 async function asyncClean() {
+  await wdg.store.set("someKey", "someValue");
+
   Neutralino.debug.log("Starting 3s delay...");
   await new Promise((r) => setTimeout(r, 3000));
   Neutralino.debug.log("defered cleanup", "INFO");
 }
 
-async function syncClean() {
-  await wdg.store.set("someKey", "someValue");
+function syncClean() {
   Neutralino.debug.log("fast cleanup, no delay.");
 }
 

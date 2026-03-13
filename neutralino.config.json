@@ -36,7 +36,7 @@
     "binaryName": "neuwidget",
     "resourcesPath": "/resources/",
     "extensionsPath": "/extensions/",
-    "clientLibrary": "/resources/js/neutralino.js",
+    "clientLibrary": "/resources/js/core/neutralino.js",
     "binaryVersion": "6.5.0",
     "clientVersion": "6.5.0"
   }

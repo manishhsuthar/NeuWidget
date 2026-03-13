@@ -25,7 +25,7 @@ npm install -g @neutralinojs/neu
 Step 2: cd to the project and generate the build folders:
 
 ```bash
-neu build && neu update
+neu update && neu build
 ```
 
 Step 3: Run the program:

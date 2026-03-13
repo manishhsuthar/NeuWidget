@@ -1,3 +1,5 @@
+import { Widget } from "./lib/widget.js";
+
 const wdg = new Widget({
   draggable: true,
   fitContent: true,

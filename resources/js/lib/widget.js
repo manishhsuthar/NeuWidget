@@ -6,7 +6,7 @@
  *
  *   wdg.onReady(() => { ...your widget logic });
  */
-class Widget {
+export class Widget {
   constructor(options = {}) {
     this.opts = {
       draggable: options.draggable ?? true,

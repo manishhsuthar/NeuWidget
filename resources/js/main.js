@@ -1,4 +1,5 @@
 import { Widget } from "./lib/widget.js";
+import { autoStart } from "./lib/autostart.js";
 
 const wdg = new Widget({
   draggable: true,
@@ -10,6 +11,7 @@ const wdg = new Widget({
 });
 
 wdg.onReady(async () => {
+  await autoStart();
   wdg.poll(updateClock, 1000);
   wdg.onQuit(asyncClean);
   wdg.onQuit(syncClean);

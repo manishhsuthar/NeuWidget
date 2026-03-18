@@ -10,8 +10,58 @@ async function getMeta() {
   return _meta;
 }
 
-export async function autoStart() {
+/**
+ * We need to make sure that even if the distributed binaries are moved acorss user directories,
+ * the auto start execution logic for each OS always point to a stable directory.
+ * In our use case, copyToStableDir() will copy the original downloaded binary to a
+ * stable directory:
+ *    ~/.local/share/neuwidget/ for linux
+ *    %LOCALAPPDATA%\neuwidget\ for windows
+ *    ~/Library/Application Support/neuwidget/ for macOS
+ */
+async function copyToStableDir() {
+  // todo: delete original binary after copying to stable dir???
+
+  const currPath = await execPathProvider();
+  const dstDir = await getStableDir();
+
+  try {
+    await Neutralino.filesystem.createDirectory(dstDir);
+    await Neutralino.filesystem.copy(currPath, dstDir);
+    if (NL_OS !== "Windows") {
+      const exe = currPath.substring(currPath.lastIndexOf("/") + 1);
+      await Neutralino.os.execCommand(`chmod +x ${dstDir}/${exe}`);
+    }
+    Neutralino.debug.log(`Installed to: ${dstDir}`, "INFO");
+  } catch (error) {
+    Neutralino.debug.log(
+      `copyToStableDir failed: ${JSON.stringify(error)}`,
+      "ERROR"
+    );
+  }
+}
+
+async function getStableDir() {
   const { WIDGET_NAME, HOME } = await getMeta();
+  if (NL_OS === "Linux") {
+    return `${HOME}/.local/share/${WIDGET_NAME}`;
+  }
+  if (NL_OS === "Darwin") {
+    return `${HOME}/Library/Application Support/${WIDGET_NAME}`;
+  }
+  if (NL_OS === "Windows") {
+    return `${await Neutralino.os.getEnv("LOCALAPPDATA")}\\${WIDGET_NAME}`;
+  }
+}
+
+export async function autoStart() {
+  const { WIDGET_NAME } = await getMeta();
+
+  const execPath = await execPathProvider();
+  const dir = await getStableDir();
+  if (!execPath.startsWith(dir)) {
+    await copyToStableDir();
+  }
 
   const launch = await isAutoStartEnabled();
   if (launch.enabled) return;
@@ -51,7 +101,7 @@ async function isAutoStartEnabled() {
   if (NL_OS === "Linux") return await checkLinux(WIDGET_NAME, HOME);
   if (NL_OS === "Windows") return await checkWindows(WIDGET_NAME);
   if (NL_OS === "Darwin") return await checkMacOS(WIDGET_NAME);
-  return true;
+  return { enabled: true, status: "ok" };
 }
 
 // -- Linux --
@@ -83,9 +133,10 @@ async function checkLinux(WIDGET_NAME, HOME) {
 }
 
 async function enableLinux(WIDGET_NAME, HOME) {
+  const stableDir = await getStableDir();
+  const execPath = `${stableDir}/${WIDGET_NAME}`;
   const dir = `${HOME}/.config/autostart`;
   const file = `${dir}/${WIDGET_NAME}.desktop`;
-  const execPath = await execPathProvider();
 
   const entry = `[Desktop Entry]
 Type=Application
@@ -132,7 +183,8 @@ async function checkWindows(WIDGET_NAME) {
 }
 
 async function enableWindows(WIDGET_NAME) {
-  const execPath = await execPathProvider();
+  const stableDir = await getStableDir();
+  const execPath = `${stableDir}\\${WIDGET_NAME}.exe`;
 
   const cmd =
     `reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run ` +
@@ -166,7 +218,8 @@ async function checkMacOS(WIDGET_NAME) {
 }
 
 async function enableMacOS(WIDGET_NAME) {
-  const execPath = await execPathProvider();
+  const stableDir = await getStableDir();
+  const execPath = `${stableDir}/${WIDGET_NAME}`;
 
   const cmd =
     `osascript -e 'tell application "System Events" ` +

@@ -26,8 +26,10 @@ npm install -g @neutralinojs/neu
 Step 2: cd to the project and generate the build folders:
 
 ```bash
-neu update && neu build
+neu update && neu build --embed-resources
 ```
+
+> Strictly recommended to use the `--embed-resources` flag while building the app. It embeds the `resources.neu` file, avoiding the need to provide it to end user.
 
 Step 3: Run the program:
 

@@ -283,7 +283,7 @@ export class Widget {
         },
         async remove(key) {
           try {
-            await Neutralino.storage.remove(String(key));
+            await Neutralino.storage.removeData(String(key));
           } catch (error) {
             Neutralino.debug.log(
               `Error removing key: ${key} - ${error}`,

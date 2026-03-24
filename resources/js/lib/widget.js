@@ -17,9 +17,11 @@ export class Widget {
       shortcuts: options.shortcuts ?? {},
     };
 
+    this._booted = false;
     this._plugins = [];
     this._readyCallbacks = [];
     this._quitCallbacks = [];
+    this._stopPolls = [];
 
     // overriding the actual quit method with _quit so that before quitting we call onQuit
     this._ogQuit = this.quit.bind(this);
@@ -45,6 +47,7 @@ export class Widget {
 
     for (const plugin of this._plugins) await plugin.init?.(this);
     for (const fn of this._readyCallbacks) await fn(this);
+    this._booted = true;
   }
 
   async show() {
@@ -61,7 +64,11 @@ export class Widget {
   }
 
   onReady(fn) {
-    this._readyCallbacks.push(fn);
+    if (this._booted) {
+      Promise.resolve().then(() => fn(this));
+    } else {
+      this._readyCallbacks.push(fn);
+    }
     return this;
   }
 
@@ -71,11 +78,14 @@ export class Widget {
   }
 
   async _quit() {
+    for (const stop of this._stopPolls) stop();
+    this._stopPolls.length = 0;
+
     for (const fn of [...this._quitCallbacks].reverse()) {
       try {
         await Promise.resolve(fn(this));
-      } catch (e) {
-        console.log("error: ", e);
+      } catch (error) {
+        Neutralino.debug.log(`Error quitting: ${error.message}`, "ERROR");
       }
     }
     this._ogQuit();
@@ -312,7 +322,9 @@ export class Widget {
   poll(fn, ms) {
     fn();
     const id = setInterval(fn, ms);
-    return () => clearInterval(id);
+    const stop = () => clearInterval(id);
+    this._stopPolls.push(stop);
+    return stop;
   }
 
   // Register a plugin with an init(wdg) method
@@ -327,9 +339,9 @@ export class Widget {
    * type (optional): Type of the message. Accepted values are INFO, WARNING, and ERROR. The default value is INFO.
    */
   log(message, type = "INFO") {
-    const VAILD = ["INFO", "WARNING", "ERROR"];
+    const VALID = ["INFO", "WARNING", "ERROR"];
     const lvl = String(type).toUpperCase();
-    Neutralino.debug.log(message, VAILD.includes(lvl) ? lvl : "INFO");
+    Neutralino.debug.log(message, VALID.includes(lvl) ? lvl : "INFO");
   }
 
   /**

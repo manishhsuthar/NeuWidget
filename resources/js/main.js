@@ -17,19 +17,19 @@ wdg.onReady(async () => {
   wdg.onQuit(syncClean);
 
   const k = await wdg.store.get("someKey");
-  if (k) await Neutralino.debug.log(`key: ${k}`, "INFO");
+  if (k) wdg.log(`key: ${k}`, "INFO");
 });
 
 async function asyncClean() {
   await wdg.store.set("someKey", "someValue");
 
-  Neutralino.debug.log("Starting 3s delay...");
+  wdg.log("Starting 3s delay...", "INFO");
   await new Promise((r) => setTimeout(r, 3000));
-  Neutralino.debug.log("defered cleanup", "INFO");
+  wdg.log("defered cleanup", "INFO");
 }
 
 function syncClean() {
-  Neutralino.debug.log("fast cleanup, no delay.");
+  wdg.log("fast cleanup, no delay.", "INFO");
 }
 
 function updateClock() {

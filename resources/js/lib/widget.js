@@ -320,6 +320,62 @@ export class Widget {
     this._plugins.push(plugin);
     return this;
   }
+
+  /**
+   * message: Content to be logged.
+   *
+   * type (optional): Type of the message. Accepted values are INFO, WARNING, and ERROR. The default value is INFO.
+   */
+  log(message, type = "INFO") {
+    const VAILD = ["INFO", "WARNING", "ERROR"];
+    const lvl = String(type).toUpperCase();
+    Neutralino.debug.log(message, VAILD.includes(lvl) ? lvl : "INFO");
+  }
+
+  /**
+   * Executes a system command via Neutralino.
+   *
+   * @param {string} cmd - Command to execute.
+   * @param {Object} [opts]
+   * @param {boolean} [opts.background=false] - Run detached; skips exit-code check.
+   * @param {string} [opts.cwd] - Working directory.
+   * @param {Object} [opts.envs] - Environment variables as key-value pairs.
+   * @param {string} [opts.stdIn] - Standard input passed to the command.
+   *
+   * @returns {Promise<{
+   *   pid: number,
+   *   stdOut: string,
+   *   stdErr: string,
+   *   code: number
+   * }>}
+   *
+   * @throws {Error} If the command fails (non-zero exit) or Neutralino rejects.
+   */
+  async exec(cmd, opts = {}) {
+    try {
+      const res = await Neutralino.os.execCommand(cmd, opts);
+      const output = {
+        pid: res.pid,
+        stdOut: res.stdOut || "",
+        stdErr: res.stdErr || "",
+        code: res.exitCode,
+      };
+
+      if (!opts.background && output.code !== 0) {
+        throw new Error(
+          `Command failed (exit ${output.code}) : ${cmd}\n${
+            output.stdErr || output.stdOut
+          }`
+        );
+      }
+
+      return output;
+    } catch (error) {
+      const msg = `exec failed for "${cmd}": ${error.message}`;
+      Neutralino.debug.log(msg, "ERROR");
+      throw new Error(msg);
+    }
+  }
 }
 
 // Resize handle styles

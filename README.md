@@ -2,8 +2,6 @@
 
 A tiny, Electron free, framework for building desktop widgets with [NeutralinoJS](https://neutralino.js.org/)
 
-**Use this Repository as a template to get a ready-to-use project folder.**
-
 > This repository implements a simple clock widget to demonstrate usage. Extend it to build your own custom widgets.
 
 ## Features
@@ -17,13 +15,19 @@ A tiny, Electron free, framework for building desktop widgets with [NeutralinoJS
 
 ## Widget Developer's Guide:
 
-Step 1: Install neutralino.js globally:
+Step 1: Get the project template:
+
+```bash
+npx create-neuwidget my-widget # replace my-widget with your widget name
+```
+
+Step 2: Install neutralino.js globally:
 
 ```bash
 npm install -g @neutralinojs/neu
 ```
 
-Step 2: cd to the project and generate the build folders:
+Step 3: cd to the project and generate the build folders:
 
 ```bash
 neu update && neu build --embed-resources
@@ -31,7 +35,7 @@ neu update && neu build --embed-resources
 
 > Strictly recommended to use the `--embed-resources` flag while building the app. It embeds the `resources.neu` file, avoiding the need to provide it to end user.
 
-Step 3: Run the program:
+Step 4: Run the program:
 
 ```bash
 neu run

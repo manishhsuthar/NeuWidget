@@ -11,17 +11,24 @@ const wdg = new Widget({
 });
 
 wdg.onReady(async () => {
-  await autoStart();
-  wdg.poll(updateClock, 1000);
-  wdg.onQuit(asyncClean);
-  wdg.onQuit(syncClean);
+  await autoStart(); // autostart enables widget auto launching on system boot
+});
 
+wdg.onReady(() => wdg.poll(updateClock, 1000));
+
+wdg.onReady(async () => {
   const k = await wdg.store.get("someKey");
   if (k) wdg.log(`key: ${k}`, "INFO");
 });
 
+wdg.onQuit(asyncClean);
+wdg.onQuit(syncClean);
+
 async function asyncClean() {
   await wdg.store.set("someKey", "someValue");
+
+  const val = await wdg.exec("ls -a").catch((error) => wdg.log(error, "ERROR"));
+  if (val) wdg.log(`${val.stdOut} ${val.code} ${val.pid} ${val.stdErr}`);
 
   wdg.log("Starting 3s delay...", "INFO");
   await new Promise((r) => setTimeout(r, 3000));

@@ -42,7 +42,6 @@ Modify the `main.js` file to implement functionalities:
 ```js
 const wdg = new Widget({
   draggable: true, // click and drag to move
-  fitContent: true, // window snaps to content size on load
   alwaysOnTop: true, // stay above other windows
   resizable: true, // set true to enable corner resize handles
   shortcuts: {

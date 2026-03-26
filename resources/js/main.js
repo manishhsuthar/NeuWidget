@@ -3,15 +3,16 @@ import { autoStart } from "./lib/autostart.js";
 
 const wdg = new Widget({
   draggable: true,
-  fitContent: true,
   resizable: true,
   shortcuts: {
     "ctrl+shift+r": () => location.reload(),
   },
 });
 
+// ---- below provided code is a usage demonstration, remove it to implement your widget functionalities ----
+
 wdg.onReady(async () => {
-  await autoStart(); // autostart enables widget auto launching on system boot
+  await autoStart();
 });
 
 wdg.onReady(() => wdg.poll(updateClock, 1000));
@@ -27,7 +28,7 @@ wdg.onQuit(syncClean);
 async function asyncClean() {
   await wdg.store.set("someKey", "someValue");
 
-  const val = await wdg.exec("ls -a").catch((error) => wdg.log(error, "ERROR"));
+  const val = await wdg.exec("cd ..").catch((error) => wdg.log(error, "ERROR"));
   if (val) wdg.log(`${val.stdOut} ${val.code} ${val.pid} ${val.stdErr}`);
 
   wdg.log("Starting 3s delay...", "INFO");

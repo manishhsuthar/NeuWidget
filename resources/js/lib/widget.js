@@ -7,7 +7,7 @@
  * @example
  * import { Widget } from "./lib/widget.js";
  *
- * const wdg = new Widget({ draggable: true, fitContent: true });
+ * const wdg = new Widget({ draggable: true, resizable: true });
  *
  * wdg.onReady(() => wdg.poll(updateUI, 1000));
  * wdg.onQuit(() => wdg.store.set("lastSeen", Date.now()));
@@ -22,7 +22,6 @@ export class Widget {
    *
    * @param {Object}  [options]                       - Widget configuration.
    * @param {boolean} [options.draggable=true]         - Allow the window to be dragged by clicking anywhere.
-   * @param {boolean} [options.fitContent=true]        - Snap the OS window size to content on boot.
    * @param {string}  [options.dragTarget="body"]      - CSS selector of the element that initiates drag.
    * @param {boolean} [options.alwaysOnTop=true]       - Keep the widget above all other windows.
    * @param {boolean} [options.resizable=false]        - Inject corner handles to allow manual resizing.
@@ -33,7 +32,6 @@ export class Widget {
   constructor(options = {}) {
     this.opts = {
       draggable: options.draggable ?? true,
-      fitContent: options.fitContent ?? true,
       dragTarget: options.dragTarget ?? "body",
       alwaysOnTop: options.alwaysOnTop ?? true,
       resizable: options.resizable ?? false,
@@ -59,7 +57,6 @@ export class Widget {
 
   async _boot() {
     if (this.opts.alwaysOnTop) await Neutralino.window.setAlwaysOnTop(true);
-    if (this.opts.fitContent) await this.fitToContent();
     if (this.opts.draggable) this.setupDrag();
     if (this.opts.resizable) this.setupResize();
 
@@ -170,43 +167,6 @@ export class Widget {
     this._ogQuit();
   }
 
-  // Window
-
-  /**
-   * Snaps the OS window size to the widget's rendered content dimensions.
-   *
-   * Auto-detects the root element by trying these selectors in order:
-   * `.widget`, `#widget`, `[data-widget]`, `body > div:first-child`.
-   *
-   * Pass an explicit selector to skip auto-detection. Call manually any time
-   * your content changes size after the initial load.
-   *
-   * @param {string} [selector] - CSS selector of the root widget element.
-   * @returns {Promise<void>}
-   *
-   * @example
-   * await wdg.fitToContent(); // Auto-detect root element
-   *
-   * await wdg.fitToContent("#my-widget"); // Explicit selector
-   */
-  async fitToContent(selector) {
-    const candidates = selector
-      ? [selector]
-      : [".widget", "#widget", "[data-widget]", "body > div:first-child"];
-
-    for (const sel of candidates) {
-      const el = document.querySelector(sel);
-      if (!el) continue;
-      const { width, height } = el.getBoundingClientRect();
-      const r = window.devicePixelRatio || 1;
-      await Neutralino.window.setSize({
-        width: Math.ceil(width * r),
-        height: Math.ceil(height * r),
-      });
-      return;
-    }
-  }
-
   // Drag
 
   /**
@@ -235,7 +195,7 @@ export class Widget {
    * Injects invisible 16×16px corner handles into `document.body` that let
    * the user resize the window by dragging any corner.
    *
-   * The widget opens at its natural content size (via `fitToContent`), and the
+   * The widget opens at its natural content size, and the
    * user can drag any corner to grow or shrink it from there. Responsiveness
    * of inner content is the widget author's responsibility.
    *

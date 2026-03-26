@@ -1,12 +1,35 @@
 /**
- * widget.js — NeutralinoJS Widget Scaffolding
+ * @file widget.js - NeutralinoJS Widget Scaffolding
  *
- * Usage:
- *   const wdg = new Widget({ draggable: true, fitContent: true });
+ * A lightweight class that wraps NeutralinoJS APIs into a clean lifecycle,
+ * providing drag, resize, shortcuts, storage, polling, plugins, and more.
  *
- *   wdg.onReady(() => { ...your widget logic });
+ * @example
+ * import { Widget } from "./lib/widget.js";
+ *
+ * const wdg = new Widget({ draggable: true, fitContent: true });
+ *
+ * wdg.onReady(() => wdg.poll(updateUI, 1000));
+ * wdg.onQuit(() => wdg.store.set("lastSeen", Date.now()));
  */
 export class Widget {
+  /**
+   * Creates a new Widget instance and initialises the Neutralino runtime.
+   *
+   * The constructor immediately calls `Neutralino.init()` and listens for the
+   * `"ready"` and `"windowClose"` events. Widget boot begins automatically
+   * when Neutralino fires `"ready"`.
+   *
+   * @param {Object}  [options]                       - Widget configuration.
+   * @param {boolean} [options.draggable=true]         - Allow the window to be dragged by clicking anywhere.
+   * @param {boolean} [options.fitContent=true]        - Snap the OS window size to content on boot.
+   * @param {string}  [options.dragTarget="body"]      - CSS selector of the element that initiates drag.
+   * @param {boolean} [options.alwaysOnTop=true]       - Keep the widget above all other windows.
+   * @param {boolean} [options.resizable=false]        - Inject corner handles to allow manual resizing.
+   * @param {Object}  [options.shortcuts={}]           - Additional keyboard shortcuts map `{ "combo": fn }`.
+   *                                                     `ctrl+q` to quit is always registered automatically.
+   *
+   */
   constructor(options = {}) {
     this.opts = {
       draggable: options.draggable ?? true,
@@ -50,19 +73,59 @@ export class Widget {
     this._booted = true;
   }
 
+  /**
+   * Shows the widget window.
+   * @returns {Promise<void>}
+   */
   async show() {
     await Neutralino.window.show();
   }
+
+  /**
+   * Hides the widget window without terminating the process.
+   * @returns {Promise<void>}
+   */
   async hide() {
     await Neutralino.window.hide();
   }
+
+  /**
+   * Minimises the widget window.
+   * @returns {Promise<void>}
+   */
   async minimize() {
     await Neutralino.window.minimize();
   }
+
+  /**
+   * Terminates the Widget process immediately.
+   *
+   * In normal usage, prefer calling `wdg.quit()` directly - it is automatically
+   * overridden at construction time to run `onQuit` callbacks before exiting.
+   *
+   * @returns {void}
+   */
   quit() {
     Neutralino.app.exit();
   }
 
+  /**
+   * Registers a callback to run after the widget has fully booted.
+   *
+   * Each call to `onReady` registers one independent effect - prefer many small
+   * focused callbacks over one large callback:
+   *
+   * ```js
+   * wdg.onReady(() => autoStart());
+   * wdg.onReady(() => wdg.poll(updateClock, 1000));
+   * wdg.onReady(async () => {await wdg.store.set("key", "value")});
+   * ```
+   *
+   * Callbacks are awaited in registration order.
+   *
+   * @param {function(Widget): (void|Promise<void>)} fn - Effect to run on ready.
+   * @returns {Widget} `this` - supports chaining.
+   */
   onReady(fn) {
     if (this._booted) {
       Promise.resolve().then(() => fn(this));
@@ -72,6 +135,22 @@ export class Widget {
     return this;
   }
 
+  /**
+   * Registers a callback to run when the widget is about to quit.
+   *
+   * Callbacks are run in **reverse registration order** (last-in, first-out).
+   * All callbacks are awaited, so async cleanup (e.g. flushing a store,
+   * waiting for a network call) is fully supported.
+   *
+   * Errors thrown inside callbacks are caught and logged - they do not
+   * prevent subsequent callbacks or the final `Neutralino.app.exit()` call.
+   *
+   * @param {function(Widget): (void|Promise<void>)} fn - Cleanup function to run before exit.
+   * @returns {Widget} `this` - supports chaining.
+   *
+   * @example
+   * wdg.onQuit(async () => {await wdg.store.set("lastSeen", Date.now())});
+   */
   onQuit(fn) {
     this._quitCallbacks.push(fn);
     return this;
@@ -94,11 +173,21 @@ export class Widget {
   // Window
 
   /**
-   * Snap the OS window size to the widget's content.
-   * Auto-detects the root element, or pass a selector to be explicit.
-   * Call manually if your content changes size after load.
+   * Snaps the OS window size to the widget's rendered content dimensions.
    *
-   * @param {string} [selector] - CSS selector of root widget element
+   * Auto-detects the root element by trying these selectors in order:
+   * `.widget`, `#widget`, `[data-widget]`, `body > div:first-child`.
+   *
+   * Pass an explicit selector to skip auto-detection. Call manually any time
+   * your content changes size after the initial load.
+   *
+   * @param {string} [selector] - CSS selector of the root widget element.
+   * @returns {Promise<void>}
+   *
+   * @example
+   * await wdg.fitToContent(); // Auto-detect root element
+   *
+   * await wdg.fitToContent("#my-widget"); // Explicit selector
    */
   async fitToContent(selector) {
     const candidates = selector
@@ -121,8 +210,16 @@ export class Widget {
   // Drag
 
   /**
-   * Wire native OS drag to an element. Defaults to dragTarget from options.
-   * @param {string} [selector]
+   * Wires native OS window drag to a DOM element.
+   *
+   * Automatically called during boot when `draggable: true`. Call manually
+   * to attach drag to a custom element after boot.
+   *
+   * @param {string} [selector] - CSS selector of the drag target.
+   *                              Defaults to the `dragTarget` option (`"body"`).
+   *
+   * @example
+   * wdg.setupDrag("#header"); // Drag only from the header bar
    */
   setupDrag(selector) {
     const el = document.querySelector(selector ?? this.opts.dragTarget);
@@ -135,14 +232,16 @@ export class Widget {
   // Resize
 
   /**
-   * Injects corner handles into the DOM that let the user resize the window.
-   * The widget opens at its natural content size (fitContent), then the user
-   * can drag any corner to grow or shrink it.
+   * Injects invisible 16×16px corner handles into `document.body` that let
+   * the user resize the window by dragging any corner.
    *
-   * Responsiveness of inner content is the widget author's responsibility —
-   * this just enables the window to be resized.
+   * The widget opens at its natural content size (via `fitToContent`), and the
+   * user can drag any corner to grow or shrink it from there. Responsiveness
+   * of inner content is the widget author's responsibility.
    *
-   * Automatically called during boot when resizable: true.
+   * Automatically called during boot when `resizable: true`.
+   *
+   * @returns {void}
    */
   setupResize() {
     injectResizeStyles();
@@ -243,10 +342,20 @@ export class Widget {
   // Shortcuts
 
   /**
-   * Register keyboard shortcuts. Fires only when this widget's window is focused.
-   * Modifiers: ctrl, shift, alt, meta. e.g. 'ctrl+q', 'ctrl+shift+r'
+   * Registers keyboard shortcuts that fire when the widget window is focused.
    *
-   * @param {object} map - { 'combo': fn }
+   * Accepts a map of combo strings to handler functions. Modifier keys:
+   * `ctrl`, `shift`, `alt`, `meta`.
+   *
+   *
+   * @param {Object.<string, function>} map - Shortcut map `{ "combo": fn }`.
+   * @returns {void}
+   *
+   * @example
+   * wdg.setupShortcuts({
+   *   "ctrl+shift+r": () => location.reload(),
+   *   "ctrl+h":       () => wdg.hide(),
+   * });
    */
   setupShortcuts(map) {
     const normalised = {};
@@ -262,9 +371,38 @@ export class Widget {
     });
   }
 
+  /**
+   * A simple async key/value store backed by `Neutralino.storage` API.
+   *
+   * Values are automatically serialised to JSON on write and deserialised on
+   * read, so any JSON-serialisable value can be stored.
+   *
+   * All the items are stored in a `.storage` file on the system, at the place of first execution.
+   *
+   * @type {{
+   *   get:     (key: string) => Promise<any>,
+   *   set:     (key: string, value: any) => Promise<store>,
+   *   remove:  (key: string) => Promise<void>,
+   *   getKeys: () => Promise<string[]>,
+   *   clear:   () => Promise<void>
+   * }}
+   *
+   * @example
+   * await wdg.store.set("theme", { color: "dark" });
+   * const theme = await wdg.store.get("theme"); // { color: "dark" }
+   * await wdg.store.remove("theme");
+   * const keys = await wdg.store.getKeys();
+   */
   get store() {
     if (!this._store) {
       this._store = {
+        /**
+         * Retrieves and deserialises a value by key.
+         * Returns `null` if the key does not exist or on error.
+         *
+         * @param {string} key
+         * @returns {Promise<any>}
+         */
         async get(key) {
           try {
             const data = await Neutralino.storage.getData(String(key));
@@ -277,6 +415,15 @@ export class Widget {
             return null;
           }
         },
+
+        /**
+         * Serialises and stores a value by key.
+         * Returns the store instance for chaining.
+         *
+         * @param {string} key
+         * @param {any} value - Any JSON-serialisable value.
+         * @returns {Promise<store>}
+         */
         async set(key, value) {
           try {
             await Neutralino.storage.setData(
@@ -291,6 +438,13 @@ export class Widget {
           }
           return this;
         },
+
+        /**
+         * Removes a key from the store.
+         *
+         * @param {string} key
+         * @returns {Promise<void>}
+         */
         async remove(key) {
           try {
             await Neutralino.storage.removeData(String(key));
@@ -302,10 +456,20 @@ export class Widget {
           }
         },
 
+        /**
+         * Returns all keys currently stored.
+         *
+         * @returns {Promise<string[]>}
+         */
         async getKeys() {
           return await Neutralino.storage.getKeys();
         },
 
+        /**
+         * Clears all stored keys and values.
+         *
+         * @returns {Promise<void>}
+         */
         async clear() {
           await Neutralino.storage.clear();
         },
@@ -317,7 +481,18 @@ export class Widget {
   // Helpers
 
   /**
-   * Runs fn immediately, then every ms. Returns a stop() function.
+   * Runs `fn` immediately, then repeatedly every `ms` milliseconds.
+   *
+   * Returns a `stop()` function that cancels the interval. All active polls
+   * are automatically stopped when `wdg.quit()` is called - the stop function
+   * is only needed if you want to cancel a specific poll early.
+   *
+   * @param {function(): void} fn  - Function to call on each tick.
+   * @param {number}           ms  - Interval duration in milliseconds.
+   * @returns {function(): void}   Stop function - call it to cancel the poll.
+   *
+   * @example
+   * const stop = wdg.poll(updateClock, 1000);
    */
   poll(fn, ms) {
     fn();
@@ -327,16 +502,41 @@ export class Widget {
     return stop;
   }
 
-  // Register a plugin with an init(wdg) method
+  /**
+   * Registers a plugin with the widget.
+   *
+   * A plugin is any object with an optional `async init(wdg)` method.
+   * Plugins are initialised in registration order during `_boot()`, before
+   * `onReady` callbacks run, so they are available to all ready effects.
+   *
+   * @param {{ init?: function(Widget): Promise<void> }} plugin
+   * @returns {Widget} `this` - supports chaining.
+   *
+   * @example
+   * const myPlugin = {
+   *   async init(wdg) {
+   *     wdg.log("plugin ready", "INFO");
+   *   }
+   * };
+   *
+   * wdg.use(myPlugin);
+   */
   use(plugin) {
     this._plugins.push(plugin);
     return this;
   }
 
   /**
-   * message: Content to be logged.
+   * Logs values with provided level (`"INFO"`, `"WARNING"`, `"ERROR"`)
    *
-   * type (optional): Type of the message. Accepted values are INFO, WARNING, and ERROR. The default value is INFO.
+   * @param {any} message - Value to log.
+   * @param {string} type - Log level
+   *
+   * @returns {void}
+   *
+   * @example
+   * wdg.log("widget started");             // INFO (default)
+   * wdg.log("something failed", "ERROR");  // ERROR
    */
   log(message, type = "INFO") {
     const VALID = ["INFO", "WARNING", "ERROR"];
@@ -362,6 +562,17 @@ export class Widget {
    * }>}
    *
    * @throws {Error} If the command fails (non-zero exit) or Neutralino rejects.
+   *
+   * @example
+   * // Basic usage
+   * const { stdOut } = await wdg.exec("ls -la");
+   * wdg.log(stdOut);
+   *
+   * // With working directory and env vars
+   * const res = await wdg.exec("node build.js", {
+   *   cwd: "/home/user/project",
+   *   envs: { NODE_ENV: "production" },
+   * });
    */
   async exec(cmd, opts = {}) {
     try {

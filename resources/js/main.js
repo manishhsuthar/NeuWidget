@@ -5,6 +5,7 @@ const wdg = new Widget({
   draggable: true,
   fitContent: true,
   resizable: true,
+  alwaysOnTop: true,
   shortcuts: {
     "ctrl+shift+r": () => location.reload(),
   },

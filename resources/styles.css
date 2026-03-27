@@ -13,8 +13,8 @@ body {
 }
 
 .clock-widget {
-  background: #000;
-  border-radius: 20px;
+  background: transparent;
+  border-radius: 200px;
   padding: 40px;
   display: flex;
   height: 100vh;

@@ -3,7 +3,6 @@ import { autoStart } from "./lib/autostart.js";
 
 const wdg = new Widget({
   draggable: true,
-  fitContent: true,
   resizable: true,
   alwaysOnTop: true,
   shortcuts: {
@@ -11,26 +10,35 @@ const wdg = new Widget({
   },
 });
 
+// ---- below provided code is a usage demonstration, remove it to implement your widget functionalities ----
+
 wdg.onReady(async () => {
   await autoStart();
-  wdg.poll(updateClock, 1000);
-  wdg.onQuit(asyncClean);
-  wdg.onQuit(syncClean);
-
-  const k = await wdg.store.get("someKey");
-  if (k) await Neutralino.debug.log(`key: ${k}`, "INFO");
 });
+
+wdg.onReady(() => wdg.poll(updateClock, 1000));
+
+wdg.onReady(async () => {
+  const k = await wdg.store.get("someKey");
+  if (k) wdg.log(`key: ${k}`, "INFO");
+});
+
+wdg.onQuit(asyncClean);
+wdg.onQuit(syncClean);
 
 async function asyncClean() {
   await wdg.store.set("someKey", "someValue");
 
-  Neutralino.debug.log("Starting 3s delay...");
+  const val = await wdg.exec("cd ..").catch((error) => wdg.log(error, "ERROR"));
+  if (val) wdg.log(`${val.stdOut} ${val.code} ${val.pid} ${val.stdErr}`);
+
+  wdg.log("Starting 3s delay...", "INFO");
   await new Promise((r) => setTimeout(r, 3000));
-  Neutralino.debug.log("defered cleanup", "INFO");
+  wdg.log("defered cleanup", "INFO");
 }
 
 function syncClean() {
-  Neutralino.debug.log("fast cleanup, no delay.");
+  wdg.log("fast cleanup, no delay.", "INFO");
 }
 
 function updateClock() {

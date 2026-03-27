@@ -54,6 +54,18 @@ async function getStableDir() {
   }
 }
 
+/**
+ * Ensures the widget auto-launches on every system login.
+ *
+ * This function is designed to be called once per session inside `wdg.onReady()`.
+ * It is safe to call on every launch — it exits early if autostart is already set up.
+ *
+ * @export
+ * @returns {Promise<void>}
+ *
+ * @example
+ * wdg.onReady(() => autoStart());
+ */
 export async function autoStart() {
   const { WIDGET_NAME } = await getMeta();
 

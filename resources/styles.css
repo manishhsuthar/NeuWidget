@@ -12,9 +12,9 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-.clock-widget {
-  background: transparent;
-  border-radius: 200px;
+.widget {
+  background: #000;
+  border-radius: 20px;
   padding: 40px;
   display: flex;
   height: 100vh;
